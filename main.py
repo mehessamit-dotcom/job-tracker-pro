@@ -7,7 +7,7 @@ Combines data management + analytics in one professional interface
 from models import JobTracker
 import pandas as pd
 from Analysis import df_functions
-import os
+import os  # Keep for future use
 
 def print_header():
     print("""
@@ -32,18 +32,21 @@ def print_menu():
 ❌ Q. Quit
     """)
 
-def run_analysis_menu(tracker):
-    """Quick analysis submenu"""
+def safe_df_setup(tracker):
+    """Creates properly formatted df for ALL analysis"""
     df = pd.read_sql_query("SELECT * FROM applications", tracker.conn)
     df['date_applied'] = pd.to_datetime(df['date_applied'])
-    analyzer = df_functions(df)
+    df.set_index('date_applied', inplace=True)  # REQUIRED for month_name()
+    return df
+
+def run_analysis_menu(tracker):
+    df = safe_df_setup(tracker)  # Get df
+    analyzer = df_functions(df)  # Create analyzer
 
     print("\n📊 ANALYSIS RESULTS:")
     print(analyzer.Response_rate_all_source('source', ['interview', 'offer']))
     print("\n💰 Salary Trends:")
     print(analyzer.salary_per_role())
-    print("\n✅ Check 'reports/' for charts!")
-
     analyzer.plot_conversion_funnel('source')
 
 def main():
@@ -68,28 +71,28 @@ def main():
             app_id = input("Enter App ID to delete: ").strip()
             tracker.delete_application(app_id)
         elif choice == '6':
-            run_analysis_menu(tracker)
+            df = safe_df_setup(tracker)
+            analyzer = df_functions(df)  # Create HERE
+            print(analyzer.Response_rate_all_source('source', ['interview', 'offer']))
+            print(analyzer.salary_per_role())
+            analyzer.plot_conversion_funnel('source')
         elif choice == '7':
-            df = pd.read_sql_query("SELECT * FROM applications", tracker.conn)
-            df['date_applied'] = pd.to_datetime(df['date_applied'])
+            df = safe_df_setup(tracker)
             analyzer = df_functions(df)
-            print("\n📈 Conversion Funnel by Source:")
             print(analyzer.Response_rate_all_source('source', ['interview']))
         elif choice == '8':
-            df = pd.read_sql_query("SELECT * FROM applications", tracker.conn)
-            df['date_applied'] = pd.to_datetime(df['date_applied'])
+            df = safe_df_setup(tracker)
             analyzer = df_functions(df)
             analyzer.best_country_for_interviews('country')
+
         elif choice == '9':
-            df = pd.read_sql_query("SELECT * FROM applications", tracker.conn)
-            df['date_applied'] = pd.to_datetime(df['date_applied'])
+            df = safe_df_setup(tracker)
             analyzer = df_functions(df)
-            print("\n💰 Salary Trends by Role:")
             print(analyzer.salary_per_role())
+
         elif choice == '10':
-            df = pd.read_sql_query("SELECT * FROM applications", tracker.conn)
-            df['date_applied'] = pd.to_datetime(df['date_applied'])
-            analyzer = df_functions(df)
+            df = safe_df_setup(tracker)
+            analyzer = df_functions(df)  # ✅ CREATE HERE
             analyzer.application_per_month()
         elif choice == 'Q':
             print("👋 Thanks for using Job Tracker Pro!")
